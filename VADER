@@ -1,0 +1,14 @@
+from nltk.sentiment.vader import SentimentIntensityAnalyzer as SIA
+
+sia = SIA()
+results = []
+
+for line in selftext:
+    # Convert line to string if it's not (this handles float and NaN values as well)
+    line = str(line)  
+    pol_score = sia.polarity_scores(line)
+    pol_score['selftext'] = line  # Assign the line to 'selftext' key in pol_score
+    results.append(pol_score)
+
+
+VADER = pd.DataFrame.from_records(results)
