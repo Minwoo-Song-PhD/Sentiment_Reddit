@@ -1,0 +1,116 @@
+import pandas as pd
+import numpy as np
+from datetime import datetime
+
+# Load the CSV file
+data = pd.read_csv('VADER_LM_FB.csv')
+
+# Extract relevant columns for calculations
+df = data.iloc[:, 2:8].values
+
+# Extract the datetime column
+dt = pd.to_datetime(data.iloc[:, 1])
+
+# Extract year, month, day, and hour
+y = dt.dt.year
+m = dt.dt.month
+d = dt.dt.day
+h = dt.dt.hour
+
+# Combine into numeric format YYYYMMDDHH
+numeric_date = y * 1000000 + m * 10000 + d * 100 + h
+
+# Update df with numeric date as the first column
+df = np.column_stack((numeric_date, df))
+
+# Define VADER, LM, and FB scores
+vader = df[:, 1]
+lm = df[:, 2]
+fb = df[:, 3]
+
+# Calculate differences for rolling window approach
+RSa = np.diff(vader)
+RSb = np.diff(lm)
+RSc = np.diff(fb)
+
+# Set parameters for rolling window
+R = 100
+Rd = R - 1
+
+# Use rolling windows to calculate percentiles for VADER, LM, and FB
+def rolling_percentile(arr, window_size, lower_percentile, upper_percentile):
+    return np.percentile(arr[-window_size:], lower_percentile), np.percentile(arr[-window_size:], upper_percentile)
+
+# Initialize transaction fee and output arrays
+fee = 0.99
+n = len(RSa)
+long_returns_a = np.zeros(n)
+short_returns_a = np.zeros(n)
+
+long_returns_b = np.zeros(n)
+short_returns_b = np.zeros(n)
+
+long_returns_c = np.zeros(n)
+short_returns_c = np.zeros(n)
+
+# Efficient vectorized strategy logic for VADER, LM, FB
+# VADER strategy
+RSa_pct_25, RSa_pct_75 = rolling_percentile(RSa, Rd, 25, 75)
+long_signal_a = RSa > RSa_pct_75
+short_signal_a = RSa < RSa_pct_25
+
+# LM strategy
+RSb_pct_25, RSb_pct_75 = rolling_percentile(RSb, Rd, 25, 75)
+long_signal_b = RSb > RSb_pct_75
+short_signal_b = RSb < RSb_pct_25
+
+# FB strategy
+RSc_pct_25, RSc_pct_75 = rolling_percentile(RSc, Rd, 25, 75)
+long_signal_c = RSc > RSc_pct_75
+short_signal_c = RSc < RSc_pct_25
+
+# Calculate the long and short returns in a vectorized way
+long_returns_a[1:] = fee * (df[1:, 4] - df[:-1, 4]) / df[:-1, 4] * 100
+short_returns_a[1:] = -fee * (df[1:, 4] - df[:-1, 4]) / df[:-1, 4] * 100
+
+long_returns_b[1:] = fee * (df[1:, 4] - df[:-1, 4]) / df[:-1, 4] * 100
+short_returns_b[1:] = -fee * (df[1:, 4] - df[:-1, 4]) / df[:-1, 4] * 100
+
+long_returns_c[1:] = fee * (df[1:, 4] - df[:-1, 4]) / df[:-1, 4] * 100
+short_returns_c[1:] = -fee * (df[1:, 4] - df[:-1, 4]) / df[:-1, 4] * 100
+
+# Apply the long and short signals
+long_returns_a *= long_signal_a
+short_returns_a *= short_signal_a
+
+long_returns_b *= long_signal_b
+short_returns_b *= short_signal_b
+
+long_returns_c *= long_signal_c
+short_returns_c *= short_signal_c
+
+# Calculate cumulative returns
+cumreturnLa = np.cumsum(long_returns_a)
+cumreturnSa = np.cumsum(short_returns_a)
+
+cumreturnLb = np.cumsum(long_returns_b)
+cumreturnSb = np.cumsum(short_returns_b)
+
+cumreturnLc = np.cumsum(long_returns_c)
+cumreturnSc = np.cumsum(short_returns_c)
+
+# Combine the cumulative returns for further analysis or plotting
+combined_cumreturns = {
+    "cumreturnLa": cumreturnLa,
+    "cumreturnSa": cumreturnSa,
+    "cumreturnLb": cumreturnLb,
+    "cumreturnSb": cumreturnSb,
+    "cumreturnLc": cumreturnLc,
+    "cumreturnSc": cumreturnSc
+}
+
+# Convert to DataFrame for convenience
+cumreturns_df = pd.DataFrame(combined_cumreturns)
+
+# Display the cumulative returns DataFrame
+print(cumreturns_df)
