@@ -1,0 +1,83 @@
+!pip install transformers torch
+
+!pip install ipywidgets --upgrade
+
+!jupyter nbextension enable --py widgetsnbextension
+
+!pip install torch
+
+!pip install transformers
+
+# Import necessary libraries
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from pylab import rcParams
+import matplotlib.pyplot as plt
+from matplotlib import rc
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, classification_report
+from collections import defaultdict
+from textwrap import wrap
+
+# Torch ML libraries
+import transformers
+from transformers import BertModel, BertTokenizer, AdamW, get_linear_schedule_with_warmup
+import torch
+from torch import nn, optim
+from torch.utils.data import Dataset, DataLoader
+
+# Misc.
+import warnings
+warnings.filterwarnings('ignore')
+
+
+selftext=df.title
+
+import pandas as pd
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# Load tokenizer and model
+tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+
+# Your DataFrame 'df' with a column 'title'
+selftext = df.title
+
+# Initialize an empty list to store results
+batch_results = []
+
+# Process in smaller batches (e.g., 1000 rows at a time)
+batch_size = 50
+for i in range(0, len(selftext), batch_size):
+    batch = selftext[i:i + batch_size].tolist()
+    batch_str_list = [str(item) for item in batch]
+
+    # Tokenize
+    inputs = tokenizer(batch_str_list, padding=True, truncation=True, return_tensors='pt')
+
+    # Get model outputs
+    outputs = model(**inputs)
+
+    # Calculate predictions
+    predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
+
+    # Extract sentiment scores and store in batch_results
+    positive = predictions[:, 0].tolist()
+    negative = predictions[:, 1].tolist()
+    neutral = predictions[:, 2].tolist()
+
+    for j in range(len(batch)):
+        batch_results.append({
+            "Headline": batch[j],
+            "Positive": positive[j],
+            "Negative": negative[j], 
+            "Neutral": neutral[j]
+        })
+
+# Create DataFrame from batch_results
+result_df = pd.DataFrame(batch_results)
+
+
+  
