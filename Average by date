@@ -1,0 +1,7 @@
+import pandas as pd
+
+# Convert 'created_utc' to datetime and normalize to just the date
+df['created_utc'] = pd.to_datetime(df['created_utc']).dt.normalize()
+
+# Group by 'date' and calculate the mean for 'VADER', 'LM_score', and 'FBscore'
+average_df = df.groupby('date')[['VADER', 'LM_score', 'FBscore']].mean().reset_index()
