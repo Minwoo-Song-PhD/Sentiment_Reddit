@@ -1,0 +1,31 @@
+import praw
+import pandas as pd
+from datetime import datetime
+
+# Initialize the Reddit API client
+reddit = praw.Reddit(client_id='YOUR ID',
+                     client_secret='  YOUR SECRET CODE ',
+                     user_agent=' AGENT  ')
+
+# Collect posts from r/Bitcoin using subreddit.new
+subreddit = reddit.subreddit('Bitcoin')
+data = []
+
+# Fetch a limited number of recent posts to test the connection
+for submission in subreddit.new(limit=1000):  # Fetch the latest 1000 submissions
+    data.append({
+        'id': submission.id,
+        'author': submission.author.name if submission.author else 'N/A',
+        'title': submission.title,
+        'selftext': submission.selftext,
+        'created_utc': submission.created_utc,
+        'created_timestamp': datetime.fromtimestamp(submission.created_utc),  # Convert UTC to timestamp
+        'score': submission.score,
+        'num_comments': submission.num_comments,
+    })
+
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Display the DataFrame to see if it contains data
+print(df)
